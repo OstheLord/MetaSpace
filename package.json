@@ -1,0 +1,17 @@
+{
+  "name": "metaspace",
+  "version": "1.0.0",
+  "description": "A web3 application for creating and managing virtual spaces in the metaverse.",
+  "main": "frontend/app.js",
+  "scripts": {
+    "start": "parcel frontend/index.html --open",
+    "build": "parcel build frontend/index.html"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "web3": "^1.5.2"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.12.5"
+  }
+}
