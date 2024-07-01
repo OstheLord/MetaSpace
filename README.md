@@ -1,1 +1,1 @@
-# MetaSpace
+MetaSpace is a Flask-based server designed to manage virtual meeting rooms and facilitate user interactions. It integrates Flask and SQLAlchemy for server management and database operations, respectively. This project connects to a PostgreSQL database, utilizes JSON parsing middleware, and operates on port 5000. Its core features include defining routes for creating, updating, and managing virtual rooms, alongside user interactions within those spaces.
