@@ -3,6 +3,7 @@ from solcx import compile_standard, install_solc
 import json
 from dotenv import load_dotenv
 import os
+from functools import lru_cache
 
 load_dotenv()
 
@@ -53,7 +54,7 @@ abi = json.loads(compiled_sol['contracts']['MetaSpace.sol']['MetaSpace']['metada
 meta_space_contract = web3.eth.contract(abi=abi, bytecode=bytecode)
 
 def deploy_contract():
-    nonce = web3.eth.getTransactionCount(account_address)
+    nonce = get_nonce(account_address)
     
     transaction = meta_space_contract.constructor().buildTransaction({
         "chainId": chain_id,
@@ -70,6 +71,7 @@ def deploy_contract():
     
     return tx_receipt.contractAddress
 
+@lru_cache(maxsize=None)
 def get_contract(contract_address):
     return web3.eth.contract(
         address=contract_address,
@@ -78,7 +80,7 @@ def get_contract(contract_address):
 
 def create_room(contract_address, room_name):
     contract = get_contract(contract_address)
-    nonce = web3.eth.getTransactionCount(account_address)
+    nonce = get_nonce(account_address)
     
     transaction = contract.functions.createRoom(room_name).buildTransaction({
         "chainId": chain_id,
@@ -97,3 +99,7 @@ def get_room(contract_address, index):
     contract = get_contract(contract_address)
     
     return contract.functions.getRoom(index).call()
+
+@lru_cache(maxsize=None)
+def get_nonce(account_address):
+    return web3.eth.getTransactionCount(account_address)
