@@ -7,18 +7,22 @@ from functools import lru_cache
 
 load_dotenv()
 
-infura_url = os.getenv('INFURA_URL')
-private_key = os.getenv('PRIVATE_KEY')
-account_address = os.getenv('ACCOUNT_ADDRESS')
+CONFIG = {
+    'infura_url': os.getenv('INFURA_URL'),
+    'private_key': os.getenv('PRIVATE_KEY'),
+    'account_address': os.getenv('ACCOUNT_ADDRESS'),
+    'chain_id': 4,
+    'solc_version': '0.8.0',
+    'gas_price': '50'
+}
 
-web3 = Web3(Web3.HTTPProvider(infura_url))
-chain_id = 4
+web3 = Web3(Web3.HTTPProvider(CONFIG['infura_url']))
 
 assert web3.isConnected(), "Fail to connect to Ethereum network."
 
-install_solc('0.8.0')
+install_solc(CONFIG['solc_version'])
 
-solidity_src = """
+SOLIDITY_SRC = """
 pragma solidity ^0.8.0;
 
 contract MetaSpace {
@@ -40,66 +44,63 @@ contract MetaSpace {
 }
 """
 
-compiled_sol = compile_standard({
-    "language": "Solidity",
-    "sources": {"MetaSpace.sol": {"content": solidity_src}},
-    "settings": {"outputSelection": {
-        "*": {"*": ["abi", "metadata", "evm.bytecode", "evm.bytecode.sourceMap"]}
-    }},
-}, solc_version="0.8.0")
+def compile_source():
+    return compile_standard({
+        "language": "Solidity",
+        "sources": {"MetaSpace.sol": {"content": SOLIDITY_SRC}},
+        "settings": {"outputSelection": {
+            "*": {"*": ["abi", "metadata", "evm.bytecode", "evm.bytecode.sourceMap"]}
+        }},
+    }, solc_version=CONFIG['solc_version'])
+
+compiled_sol = compile_source()
 
 bytecode = compiled_sol['contracts']['MetaSpace.sol']['MetaSpace']['evm']['bytecode']['object']
 abi = json.loads(compiled_sol['contracts']['MetaSpace.sol']['MetaSpace']['metadata'])['output']['abi']
 
-meta_space_contract = web3.eth.contract(abi=abi, bytecode=bytecode)
-
+@lru_cache(maxsize=None)
 def deploy_contract():
-    nonce = get_nonce(account_address)
+    nonce = get_nonce(CONFIG['account_address'])
+    contract = web3.eth.contract(abi=abi, bytecode=bytecode)
     
-    transaction = meta_space_contract.constructor().buildTransaction({
-        "chainId": chain_id,
-        "from": account_address,
+    transaction = contract.constructor().buildTransaction({
+        "chainId": CONFIG['chain_id'],
+        "from": CONFIG['account_address'],
         "nonce": nonce,
-        "gasPrice": web3.toWei("50", "gwei")
+        "gasPrice": web3.toWei(CONFIG['gas_price'], "gwei")
     })
     
-    signed_tx = web3.eth.account.signTransaction(transaction, private_key)
-    
+    signed_tx = web3.eth.account.signTransaction(transaction, CONFIG['private_key'])
     tx_hash = web3.eth.sendRawTransaction(signed_tx.rawTransaction)
-    
     tx_receipt = web3.eth.waitForTransactionReceipt(tx_hash)
-    
+
     return tx_receipt.contractAddress
 
-@lru_cache(maxsize=None)
+@lru_cache(maxsize=32)
 def get_contract(contract_address):
-    return web3.eth.contract(
-        address=contract_address,
-        abi=abi
-    )
+    return web3.eth.contract(address=contract_address, abi=abi)
 
 def create_room(contract_address, room_name):
     contract = get_contract(contract_address)
-    nonce = get_nonce(account_address)
+    nonce = get_nonce(CONFIG['account_address'])
     
     transaction = contract.functions.createRoom(room_name).buildTransaction({
-        "chainId": chain_id,
-        "from": account_address,
+        "chainId": CONFIG['chain_id'],
+        "from": CONFIG['account_address'],
         "nonce": nonce,
-        "gasPrice": web3.toWei("50", "gwei")
+        "gasPrice": web3.toWei(CONFIG['gas_price'], "gwei")
     })
     
-    signed_tx = web3.eth.account.signTransaction(transaction, private_key)
+    signed_tx = web3.eth.account.signTransaction(transaction, CONFIG['private_key'])
     tx_hash = web3.eth.sendRawTransaction(signed_tx.rawTransaction)
     tx_receipt = web3.eth.waitForTransactionReceipt(tx_hash)
-    
+
     return tx_receipt
 
 def get_room(contract_address, index):
     contract = get_contract(contract_address)
-    
     return contract.functions.getRoom(index).call()
 
-@lru_cache(maxsize=None)
+@lru_cache(maxsize=32)
 def get_nonce(account_address):
     return web3.eth.getTransactionCount(account_address)
