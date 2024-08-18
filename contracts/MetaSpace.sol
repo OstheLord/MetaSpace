@@ -19,14 +19,7 @@ contract VirtualRoomManager {
     }
 
     modifier onlyRoomMembers(uint256 roomId) {
-        bool isMember = false;
-        for (uint256 i = 0; i < rooms[roomId].members.length; i++) {
-            if (rooms[roomId].members[i] == msg.sender) {
-                isMember = true;
-                break;
-            }
-        }
-        require(isMember, "Only room members can perform this action");
+        require(isRoomMember(roomId, msg.sender), "Only room members can perform this action");
         _;
     }
 
@@ -40,6 +33,8 @@ contract VirtualRoomManager {
 
     function createRoom(string memory name) public {
         rooms[roomIdCounter] = Room(roomIdCounter, name, new address[](0));
+        // Here owner implicitly becomes a member by creating the room.
+        rooms[roomIdCounter].members.push(msg.sender);
         userRooms[msg.sender].push(roomIdCounter);
 
         emit RoomCreated(roomIdCounter, name);
@@ -47,9 +42,8 @@ contract VirtualRoomManager {
     }
 
     function addMember(uint256 roomId, address newMember) public onlyRoomMembers(roomId) {
-        for (uint256 i = 0; i < rooms[roomId].members.length; i++) {
-            require(rooms[roomId].members[i] != newMember, "User is already a member");
-        }
+        require(!isRoomMember(roomId, newMember), "User is already a member");
+        
         rooms[roomId].members.push(newMember);
         userRooms[newMember].push(roomId);
 
@@ -64,6 +58,9 @@ contract VirtualRoomManager {
                 break;
             }
         }
+        // Assuming we might want to clean up the userRooms mapping.
+        removeUserRoom(member, roomId);
+
         emit MemberRemoved(roomId, member);
     }
 
@@ -73,5 +70,25 @@ contract VirtualRoomManager {
 
     function getUserRooms(address user) public view returns (uint256[] memory) {
         return userRooms[user];
+    }
+
+    function isRoomMember(uint256 roomId, address user) public view returns (bool) {
+        for (uint256 i = 0; i < rooms[roomId].members.length; i++) {
+            if (rooms[roomId].members[i] == user) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function removeUserRoom(address user, uint256 roomId) private {
+        uint256[] storage userRoomIds = userRooms[user];
+        for (uint256 i = 0; i < userRoomIds.length; i++) {
+            if (userRoomIds[i] == roomId) {
+                userRoomIds[i] = userRoomIds[userRoomIds.length - 1];
+                userRoomIds.pop();
+                break;
+            }
+        }
     }
 }
