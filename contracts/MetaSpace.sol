@@ -30,13 +30,15 @@ contract VirtualRoomManager {
     constructor() {
         owner = msg.sender;
     }
-
+    
     function createRoom(string memory name) public {
-        rooms[roomIdCounter] = Room(roomIdCounter, name, new address[](0));
-        // Here owner implicitly becomes a member by creating the room.
-        rooms[roomIdCounter].members.push(msg.sender);
+        Room storage newRoom = rooms[roomIdCounter];
+        newRoom.id = roomIdCounter;
+        newRoom.name = name;
+        newRoom.members.push(msg.sender);
+        
         userRooms[msg.sender].push(roomIdCounter);
-
+        
         emit RoomCreated(roomIdCounter, name);
         roomIdCounter++;
     }
@@ -51,15 +53,8 @@ contract VirtualRoomManager {
     }
 
     function removeMember(uint256 roomId, address member) public onlyRoomMembers(roomId) {
-        for (uint256 i = 0; i < rooms[roomId].members.length; i++) {
-            if (rooms[roomId].members[i] == member) {
-                rooms[roomId].members[i] = rooms[roomId].members[rooms[roomId].members.length - 1];
-                rooms[roomId].members.pop();
-                break;
-            }
-        }
-        // Assuming we might want to clean up the userRooms mapping.
-        removeUserRoom(member, roomId);
+        _removeFromArray(rooms[roomId].members, member);
+        _removeFromArray(userRooms[member], roomId);
 
         emit MemberRemoved(roomId, member);
     }
@@ -73,20 +68,30 @@ contract VirtualRoomManager {
     }
 
     function isRoomMember(uint256 roomId, address user) public view returns (bool) {
-        for (uint256 i = 0; i < rooms[roomId].members.length; i++) {
-            if (rooms[roomId].members[i] == user) {
+        address[] memory members = rooms[roomId].members;
+        for (uint256 i = 0; i < members.length; i++) {
+            if (members[i] == user) {
                 return true;
             }
         }
         return false;
     }
 
-    function removeUserRoom(address user, uint256 roomId) private {
-        uint256[] storage userRoomIds = userRooms[user];
-        for (uint256 i = 0; i < userRoomIds.length; i++) {
-            if (userRoomIds[i] == roomId) {
-                userRoomIds[i] = userRoomIds[userRoomIds.length - 1];
-                userRoomIds.pop();
+    function _removeFromArray(address[] storage array, address valueToRemove) private {
+        for (uint256 i = 0; i < array.length; i++) {
+            if (array[i] == valueToRemove) {
+                array[i] = array[array.length - 1];
+                array.pop();
+                break;
+            }
+        }
+    }
+
+    function _removeFromArray(uint256[] storage array, uint256 valueToRemove) private {
+        for (uint256 i = 0; i < array.length; i++) {
+            if (array[i] == valueToRemove) {
+                array[i] = array[array.length - 1];
+                array.pop();
                 break;
             }
         }
