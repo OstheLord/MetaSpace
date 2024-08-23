@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 contract VirtualRoomManager {
@@ -24,7 +25,7 @@ contract VirtualRoomManager {
     }
 
     event RoomCreated(uint256 roomId, string roomName);
-    event MemberAdded(uint256 roomId, address newMember);
+    event MembersAdded(uint256 roomId, address[] newMembers);
     event MemberRemoved(uint256 roomId, address member);
 
     constructor() {
@@ -43,13 +44,14 @@ contract VirtualRoomManager {
         roomIdCounter++;
     }
 
-    function addMember(uint256 roomId, address newMember) public onlyRoomMembers(roomId) {
-        require(!isRoomMember(roomId, newMember), "User is already a member");
-        
-        rooms[roomId].members.push(newMember);
-        userRooms[newMember].push(roomId);
-
-        emit MemberAdded(roomId, newMember);
+    function addMembers(uint256 roomId, address[] memory newMembers) public onlyRoomMembers(roomId) {
+        for (uint i = 0; i < newMembers.length; i++) {
+            if (!isRoomMember(roomId, newMembers[i])) {
+                rooms[roomId].members.push(newMembers[i]);
+                userRooms[newMembers[i]].push(roomId);
+            }
+        }
+        emit MembersAdded(roomId, newMembers);
     }
 
     function removeMember(uint256 roomId, address member) public onlyRoomMembers(roomId) {
@@ -59,12 +61,16 @@ contract VirtualRoomManager {
         emit MemberRemoved(roomId, member);
     }
 
-    function getRoomDetails(uint256 roomId) public view returns (Room memory) {
-        return rooms[roomId];
+    function getRoomMembers(uint256 roomId) public view returns (address[] memory) {
+        return rooms[roomId].members;
     }
 
-    function getUserRooms(address user) public view returns (uint256[] memory) {
-        return userRooms[user];
+    function areRoomMembers(uint256 roomId, address[] memory users) public view returns (bool[] memory) {
+        bool[] memory results = new bool[](users.length);
+        for (uint256 i = 0; i < users.length; i++) {
+            results[i] = isRoomMember(roomId, users[i]);
+        }
+        return results;
     }
 
     function isRoomMember(uint256 roomId, address user) public view returns (bool) {
