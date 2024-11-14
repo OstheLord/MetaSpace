@@ -7,28 +7,28 @@ const BASE_API_URL = process.env.BASE_API_URL;
 async function createRoom(roomData) {
     try {
         const response = await axios.post(`${BASE_API_URL}/createRoom`, roomData);
-        console.log('Room created:', response.data);
+        logOutput('Room created:', response.data);
     } catch (error) {
-        console.error('Error creating room:', error);
+        logOutput('Error creating room:', error, true);
     }
 }
 
 async function addElementToRoom(roomId, elementData) {
     try {
         const response = await axios.post(`${BASE_API_URL}/rooms/${roomId}/addElement`, elementData);
-        console.log('Element added to the room:', response.data);
+        logOutput('Element added to the room:', response.data);
     } catch (error) {
-        console.error('Error adding element to room:', error);
+        logOutput('Error adding element to room:', error, true);
     }
 }
 
 async function getRoomDetails(roomId) {
     try {
         const response = await axios.get(`${BASE_API_URL}/rooms/${roomId}`);
-        console.log('Room details:', response.data);
+        logOutput('Room details:', response.data);
         displayRoomDetails(response.data);
     } catch (error) {
-        console.error('Error fetching room details:', error);
+        logOutput('Error fetching room details:', error, true);
     }
 }
 
@@ -60,6 +60,14 @@ function setUpEventListeners() {
         const roomId = 'room1';
         getRoomDetails(roomId);
     });
+}
+
+function logOutput(message, data, isError = false) {
+    if (isError) {
+        console.error(message, data);
+    } else {
+        console.log(message, data);
+    }
 }
 
 function init() {
