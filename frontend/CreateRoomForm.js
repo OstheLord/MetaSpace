@@ -3,19 +3,37 @@ import React, { useState } from 'react';
 const CreateRoomForm = () => {
   const [roomName, setRoomName] = useState('');
   const [roomDescription, setRoomDescription] = useState('');
+  const [validationError, setValidationError] = useState('');
+
+  const validateRoomName = (name) => {
+    if (name.length < 5) {
+      return 'Room name must be at least 5 characters long.';
+    }
+    if (!/^[a-zA-Z0-9 ]*$/.test(name)) {
+      return 'Room name must only contain alphanumeric characters and spaces.';
+    }
+    return '';
+  };
 
   const handleSubmit = (event) => {
     event.preventDefault();
+    const error = validateRoomName(roomName);
 
-    if (!roomName || !roomDescription) {
-      alert('Both room name and description are required!');
+    if (error) {
+      setValidationError(error);
+      return;
+    }
+
+    if (!roomDescription) {
+      alert('Room description is required!');
       return;
     }
 
     console.log('Submitting', { roomName, roomDescription });
-
+    // Reset form states
     setRoomName('');
     setRoomDescription('');
+    setValidationError('');
   };
 
   return (
@@ -28,6 +46,7 @@ const CreateRoomForm = () => {
           value={roomName}
           onChange={(e) => setRoomName(e.target.value)}
         />
+        {validationError && <p style={{color: 'red'}}>{validationError}</p>}
       </div>
       <div>
         <label htmlFor="roomDescription">Room Description:</label>
